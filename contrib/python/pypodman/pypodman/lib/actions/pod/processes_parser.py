@@ -26,6 +26,7 @@ class ProcessesPod(AbstractActionBase):
         parser.add_argument(
             '--format',
             choices=('json'),
+            type=str.lower,
             help='Pretty-print containers to JSON')
         parser.add_argument(
             '--sort',

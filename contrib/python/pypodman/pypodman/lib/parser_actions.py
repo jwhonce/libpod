@@ -115,16 +115,16 @@ class SignalAction(argparse.Action):
         """Validate input is a signal for platform."""
         if values.isdigit():
             signum = int(values)
-            if signal.SIGRTMIN <= signum >= signal.SIGRTMAX:
-                raise ValueError('"{}" is not a valid signal. {}-{}'.format(
-                    values, signal.SIGRTMIN, signal.SIGRTMAX))
+            if not (1 <= signum < signal.NSIG):
+                raise ValueError('"{}" is not a valid signal. 1-{}'.format(
+                    values, signal.NSIG))
         else:
             signum = self._signal_number(values)
             if signum is None:
                 parser.error(
                     '"{}" is not a valid signal,'
                     ' see your platform documentation.'.format(values))
-        setattr(namespace, self.dest, signum)
+        setattr(namespace, self.dest, int(signum))
 
 
 class UnitAction(argparse.Action):

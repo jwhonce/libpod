@@ -19,6 +19,7 @@ class AbstractActionBase(abc.ABC):
         """
         parent.add_flag(
             '--all',
+            '-a',
             help='list all items.')
         parent.add_flag(
             '--truncate',

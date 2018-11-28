@@ -20,18 +20,15 @@ class Image(collections.UserDict):
         self._id = id
         self._client = client
 
-        assert self._id == data['id'],\
+        assert self._id == data['id'], (
             'Requested image id({}) does not match store id({})'.format(
-                self._id, data['id']
-            )
+                self._id, data['id']))
 
     @staticmethod
     def _split_token(values=None, sep='='):
         if not values:
             return {}
-        return {
-            k: v1 for k, v1 in (v0.split(sep, 1) for v0 in values)
-        }
+        return {k: v1 for k, v1 in (v0.split(sep, 1) for v0 in values)}
 
     def create(self, *args, **kwargs):
         """Create container from image.

@@ -47,6 +47,7 @@ class Commit(AbstractActionBase):
         parser.add_flag(
             '--pause',
             '-p',
+            default=True,
             help='Pause the container when creating an image',
         )
         parser.add_flag(

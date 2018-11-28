@@ -30,10 +30,9 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
                 setattr(self, 'running', self.data['containerrunning'])
                 self.data['running'] = self.data['containerrunning']
 
-        assert self._id == data['id'],\
+        assert self._id == data['id'], (
             'Requested container id({}) does not match store id({})'.format(
-                self._id, data['id']
-            )
+                self._id, data['id']))
 
     def _refresh(self, podman, tries=1):
         try:
@@ -193,7 +192,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
             podman.UnpauseContainer(self._id)
             return self._refresh(podman)
 
-    def update_container(self, *args, **kwargs):  \
+    def update_container(self, *args, **kwargs):          \
             # pylint: disable=unused-argument
         """TODO: Update container..., return id on success."""
         with self._client() as podman:

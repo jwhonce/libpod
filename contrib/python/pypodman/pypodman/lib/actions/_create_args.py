@@ -329,13 +329,14 @@ class CreateArguments():
             '--shm-size', action=UnitAction, help='Size of /dev/shm')
         parser.add_flag(
             '--sig-proxy',
+            default=True,
             help='Proxy signals sent to the podman run'
             ' command to the container process')
         parser.add_argument(
             '--stop-signal',
             action=SignalAction,
-            default='TERM',
-            help='Signal to stop a container')
+            default=15,
+            help='Signal to stop a container. (default: TERM)')
         parser.add_argument(
             '--stop-timeout',
             metavar='TIMEOUT',

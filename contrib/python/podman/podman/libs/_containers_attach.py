@@ -28,14 +28,15 @@ class Mixin:
             stdout = stdout.fileno()
 
         with self._client() as podman:
+            logging.debug('attach: GetAttachSockets(%s)', self._id)
             attach = podman.GetAttachSockets(self._id)
+            logging.debug('attach: Ctnr "%s" sockets %s', self._id, attach)
 
         # This is the UDS where all the IO goes
         io_socket = attach['sockets']['io_socket']
-        assert len(io_socket) <= 107,\
+        assert len(io_socket) <= 107, (
             'Path length for sockets too long. {} > 107'.format(
-                len(io_socket)
-            )
+                len(io_socket)))
 
         # This is the control socket where resizing events are sent to conmon
         # attach['sockets']['control_socket']
@@ -57,7 +58,7 @@ class Mixin:
             packed = fcntl.ioctl(self.pseudo_tty.stdout, termios.TIOCGWINSZ,
                                  struct.pack('HHHH', 0, 0, 0, 0))
             rows, cols, _, _ = struct.unpack('HHHH', packed)
-            logging.debug('Resize window(%dx%d) using %s', rows, cols,
+            logging.debug('attach: Resize window(%dx%d) using %s', rows, cols,
                           self.pseudo_tty.control_socket)
 
             # TODO: Need some kind of timeout in case pipe is blocked

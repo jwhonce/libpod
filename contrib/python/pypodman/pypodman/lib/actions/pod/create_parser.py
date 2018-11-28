@@ -22,6 +22,7 @@ class CreatePod(AbstractActionBase):
             ' cgroup for the pod will be created.')
         parser.add_flag(
             '--infra',
+            default=True,
             help='Create an infra container and associate it with the pod.')
         parser.add_argument(
             '-l',

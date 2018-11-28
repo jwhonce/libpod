@@ -19,12 +19,15 @@ class History(AbstractActionBase):
         parser.add_flag(
             '--human',
             '-H',
-            help='Display sizes and dates in human readable format.')
+            default=True,
+            help='Display sizes and dates in human readable format.'
+            ' (default %(default)s)')
         parser.add_argument(
             '--format',
             choices=('json', 'table'),
-            help="Alter the output for a format like 'json' or 'table'."
-            " (default: table)")
+            default='table',
+            type=str.lower,
+            help='Alter the output for a format. (default %(default)s)')
         parser.add_argument(
             'image', nargs='+', help='image for history report')
         parser.set_defaults(class_=cls, method='history')
