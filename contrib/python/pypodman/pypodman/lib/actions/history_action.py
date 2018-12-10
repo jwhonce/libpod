@@ -1,4 +1,5 @@
 """Remote client for reporting image history."""
+import argparse
 import json
 from collections import OrderedDict
 
@@ -29,7 +30,9 @@ class History(AbstractActionBase):
             type=str.lower,
             help='Alter the output for a format. (default %(default)s)')
         parser.add_argument(
-            'image', nargs='+', help='image for history report')
+            'image',
+            nargs=argparse.ONE_OR_MORE,
+            help='image for history report')
         parser.set_defaults(class_=cls, method='history')
 
     def __init__(self, args):

@@ -1,6 +1,4 @@
 """Remote client command for creating pod."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase
 
@@ -32,11 +30,7 @@ class CreatePod(AbstractActionBase):
             type=str,
             help='Add metadata to a pod (e.g., --label=com.example.key=value)')
         parser.add_argument(
-            '-n',
-            '--name',
-            dest='ident',
-            type=str,
-            help='Assign name to the pod')
+            '--name', '-n', dest='ident', help='Assign name to the pod')
         parser.add_argument(
             '--share',
             choices=('ipc', 'net', 'pid', 'user', 'uts'),
@@ -61,17 +55,21 @@ class CreatePod(AbstractActionBase):
 
     def create(self):
         """Create Pod from given options."""
-        config = {}
+        # config = {
+        #     k: self.opts.get(k)
+        #     for k in ('ident', 'cgroupparent', 'infra', 'labels', 'share')
+        # }
+        config = {'labels': {}}
         for key in ('ident', 'cgroupparent', 'infra', 'labels', 'share'):
-            config[key] = self.opts.get(key)
+            if key in self.opts:
+                config[key] = self.opts[key]
+        print(config)
 
         try:
             pod = self.client.pods.create(**config)
         except podman.ErrorOccurred as ex:
-            sys.stdout.flush()
-            print(
-                '{}'.format(ex.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(ex.reason).capitalize())
+            return 1
         else:
             print(pod.id)
+        return 0

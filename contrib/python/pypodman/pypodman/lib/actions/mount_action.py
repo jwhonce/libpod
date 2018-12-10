@@ -1,5 +1,5 @@
 """Remote client command for retrieving mounts from containers."""
-import sys
+import argparse
 from collections import OrderedDict
 
 import podman
@@ -17,7 +17,7 @@ class Mount(AbstractActionBase):
         super().subparser(parser)
         parser.add_argument(
             'containers',
-            nargs='*',
+            nargs=argparse.ZERO_OR_MORE,
             help='containers to list ports',
         )
         parser.set_defaults(class_=cls, method='mount')
@@ -44,23 +44,13 @@ class Mount(AbstractActionBase):
                     try:
                         ctnrs.append(self.client.containers.get(ident))
                     except podman.ContainerNotFound as e:
-                        sys.stdout.flush()
-                        print(
-                            'Container "{}" not found'.format(e.name),
-                            file=sys.stderr,
-                            flush=True)
-
+                        self.error('Container "{}" not found'.format(e.name))
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
 
         if not ctnrs:
-            print(
-                'Unable to find any containers.', file=sys.stderr, flush=True)
+            self.error('Unable to find any containers.')
             return 1
 
         rows = list()
@@ -76,3 +66,4 @@ class Mount(AbstractActionBase):
                 rows, self.columns.keys(), truncate=self._args.truncate)
             for row in rows:
                 report.row(**row)
+        return 0

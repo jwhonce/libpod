@@ -1,7 +1,7 @@
 """Remote client command for inspecting podman objects."""
+import argparse
 import json
 import logging
-import sys
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -27,7 +27,7 @@ class Inspect(AbstractActionBase):
             help='Display the total file size if the type is a container.')
         parser.add_argument(
             'objects',
-            nargs='+',
+            nargs=argparse.ONE_OR_MORE,
             help='objects to inspect',
         )
         parser.set_defaults(class_=cls, method='inspect')
@@ -69,7 +69,7 @@ class Inspect(AbstractActionBase):
                         msg = 'Image "{}" not found'.format(ident)
                     else:
                         msg = 'Object "{}" not found'.format(ident)
-                    print(msg, file=sys.stderr, flush=True)
+                    self.error(msg)
                 else:
                     fields = obj._asdict()
                     if not self._args.size:
@@ -79,11 +79,8 @@ class Inspect(AbstractActionBase):
                             pass
                     output.append(fields)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         else:
             print(json.dumps(output, indent=2))
+        return 0

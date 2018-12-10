@@ -1,6 +1,6 @@
 """Remote client command for restarting containers."""
+import argparse
 import logging
-import sys
 
 import podman
 from pypodman.lib import AbstractActionBase, PositiveIntAction
@@ -20,7 +20,9 @@ class Restart(AbstractActionBase):
             help='Timeout to wait before forcibly stopping the container'
             ' (default: %(default)s seconds)')
         parser.add_argument(
-            'targets', nargs='+', help='container id(s) to restart')
+            'targets',
+            nargs=argparse.ONE_OR_MORE,
+            help='container id(s) to restart')
         parser.set_defaults(class_=cls, method='restart')
 
     def restart(self):
@@ -29,18 +31,10 @@ class Restart(AbstractActionBase):
             for ident in self._args.targets:
                 try:
                     ctnr = self.client.containers.get(ident)
-                    logging.debug('Restarting Container %s', ctnr.id)
+                    logging.debug('Restarting Container "%s"', ctnr.id)
                     ctnr.restart(timeout=self._args.timeout)
                     print(ident)
                 except podman.ContainerNotFound as e:
-                    sys.stdout.flush()
-                    print(
-                        'Container {} not found.'.format(e.name),
-                        file=sys.stderr,
-                        flush=True)
+                    self.error('Container "{}" not found.'.format(e.name))
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())

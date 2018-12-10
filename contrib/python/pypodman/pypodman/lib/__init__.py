@@ -3,14 +3,15 @@ import sys
 
 import podman
 from pypodman.lib.action_base import AbstractActionBase
-from pypodman.lib.parser_actions import (ChangeAction, PathAction,
-                                         PositiveIntAction, SignalAction,
-                                         UnitAction)
+from pypodman.lib.parser_actions import (ChangeAction, DetachKeyAction,
+                                         PathAction, PositiveIntAction,
+                                         SignalAction, UnitAction)
 from pypodman.lib.podman_parser import PodmanArgumentParser
 from pypodman.lib.report import Report, ReportColumn
 
 # Silence pylint overlording...
 assert ChangeAction
+assert DetachKeyAction
 assert PathAction
 assert PositiveIntAction
 assert SignalAction

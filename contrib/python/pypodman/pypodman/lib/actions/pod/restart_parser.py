@@ -1,5 +1,5 @@
 """Remote client command for restarting pod and container(s)."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -13,12 +13,11 @@ class RestartPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Restart command to parent parser."""
         parser = parent.add_parser('restart', help='restart containers in pod')
-        parser.add_flag(
-            '--all',
-            '-a',
-            help='Restart all pods.')
+        parser.add_flag('--all', '-a', help='Restart all pods.')
         parser.add_argument(
-            'pod', nargs='*', help='Pod to restart. Or, use --all')
+            'pod',
+            nargs=argparse.ZERO_OR_MORE,
+            help='Pod(s) to restart. Or, use --all')
         parser.set_defaults(class_=cls, method='restart')
 
     def __init__(self, args):
@@ -37,14 +36,8 @@ class RestartPod(AbstractActionBase):
                 pod.restart()
                 print(pod.id)
             except podman.PodNotFound as ex:
-                print(
-                    'Pod "{}" not found.'.format(ex.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Pod "{}" not found.'.format(ex.name))
             except podman.ErrorOccurred as ex:
-                print(
-                    '{}'.format(ex.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(ex.reason).capitalize())
                 return 1
         return 0

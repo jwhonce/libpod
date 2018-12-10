@@ -1,6 +1,6 @@
 """Remote client command for starting pod and container(s)."""
 
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -14,12 +14,11 @@ class StartPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Start command to parent parser."""
         parser = parent.add_parser('start', help='start pod')
-        parser.add_flag(
-            '--all',
-            '-a',
-            help='Start all pods.')
+        parser.add_flag('--all', '-a', help='Start all pods.')
         parser.add_argument(
-            'pod', nargs='*', help='Pod to start. Or, use --all')
+            'pod',
+            nargs=argparse.ZERO_OR_MORE,
+            help='Pod to start. Or, use --all')
         parser.set_defaults(class_=cls, method='start')
 
     def __init__(self, args):
@@ -37,9 +36,6 @@ class StartPod(AbstractActionBase):
             try:
                 pod.start()
             except podman.ErrorOccurred as ex:
-                print(
-                    '{}'.format(ex.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(ex.reason).capitalize())
                 return 1
         return 0

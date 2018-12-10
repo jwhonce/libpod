@@ -1,8 +1,9 @@
 """Remote client command for starting containers."""
+import argparse
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase
+from pypodman.lib import AbstractActionBase, DetachKeyAction
 
 
 class Start(AbstractActionBase):
@@ -13,28 +14,16 @@ class Start(AbstractActionBase):
         """Add Start command to parent parser."""
         parser = parent.add_parser('start', help='start container')
         parser.add_flag(
-            '--attach',
-            '-a',
-            help="Attach container's STDOUT and STDERR.")
-        parser.add_argument(
-            '--detach-keys',
-            metavar='KEY(s)',
-            default=4,
-            help='Override the key sequence for detaching a container.'
-            ' (format: a single character [a-Z] or ctrl-<value> where'
-            ' <value> is one of: a-z, @, ^, [, , or _) (default: ^D)')
+            '--attach', '-a', help="Attach container's STDOUT and STDERR.")
+        parser.add_argument('--detach-keys', action=DetachKeyAction)
         parser.add_flag(
-            '--interactive',
-            '-i',
-            help="Attach container's STDIN.")
+            '--interactive', '-i', help="Attach container's STDIN.")
         # TODO: Implement sig-proxy
         parser.add_flag(
-            '--sig-proxy',
-            help="Proxy received signals to the process."
-        )
+            '--sig-proxy', help="Proxy received signals to the process.")
         parser.add_argument(
             'containers',
-            nargs='+',
+            nargs=argparse.ONE_OR_MORE,
             help='containers to start',
         )
         parser.set_defaults(class_=cls, method='start')
@@ -54,18 +43,10 @@ class Start(AbstractActionBase):
                         stdout=stdout)
                     ctnr.start()
                 except podman.ContainerNotFound as e:
-                    sys.stdout.flush()
-                    print(
-                        'Container "{}" not found'.format(e.name),
-                        file=sys.stderr,
-                        flush=True)
+                    self.error('Container "{}" not found'.format(e.name))
                 else:
                     print(ident)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         return 0

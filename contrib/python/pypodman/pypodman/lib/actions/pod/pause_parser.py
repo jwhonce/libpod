@@ -1,5 +1,5 @@
 """Remote client command for pausing processes in pod."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -13,11 +13,9 @@ class PausePod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Pause command to parent parser."""
         parser = parent.add_parser('pause', help='pause containers in pod')
-        parser.add_flag(
-            '--all',
-            '-a',
-            help='Pause all pods.')
-        parser.add_argument('pod', nargs='*', help='pod(s) to pause.')
+        parser.add_flag('--all', '-a', help='Pause all pods.')
+        parser.add_argument(
+            'pod', nargs=argparse.ZERO_OR_MORE, help='pod(s) to pause.')
         parser.set_defaults(class_=cls, method='pause')
 
     def __init__(self, args):
@@ -36,14 +34,8 @@ class PausePod(AbstractActionBase):
                 pod.pause()
                 print(pod.id)
             except podman.PodNotFound as ex:
-                print(
-                    'Pod "{}" not found'.format(ex.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Pod "{}" not found'.format(ex.name))
             except podman.ErrorOccurred as ex:
-                print(
-                    '{}'.format(ex.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(ex.reason).capitalize())
                 return 1
         return 0

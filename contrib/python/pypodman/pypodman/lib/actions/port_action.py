@@ -1,5 +1,5 @@
 """Remote client command for retrieving ports from containers."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -19,7 +19,7 @@ class Port(AbstractActionBase):
             help='List all known port mappings for running containers')
         parser.add_argument(
             'containers',
-            nargs='*',
+            nargs=argparse.ZERO_OR_MORE,
             help='containers to list ports',
         )
         parser.set_defaults(class_=cls, method='port')
@@ -42,20 +42,12 @@ class Port(AbstractActionBase):
                     try:
                         ctnrs.append(self.client.containers.get(ident))
                     except podman.ContainerNotFound as e:
-                        sys.stdout.flush()
-                        print(
-                            'Container "{}" not found'.format(e.name),
-                            file=sys.stderr,
-                            flush=True)
+                        self.error('Container "{}" not found'.format(e.name))
 
             for ctnr in ctnrs:
                 print("{}\n{}".format(ctnr.id, ctnr.ports))
 
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         return 0

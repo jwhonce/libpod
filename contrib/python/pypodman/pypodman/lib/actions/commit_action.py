@@ -1,6 +1,4 @@
 """Remote client command for creating image from container."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase, ChangeAction
 
@@ -73,11 +71,7 @@ class Commit(AbstractActionBase):
             try:
                 ctnr = self.client.containers.get(self._args.container[0])
             except podman.ContainerNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Container {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Container {} not found.'.format(e.name))
                 return 1
             else:
                 ident = ctnr.commit(
@@ -91,10 +85,6 @@ class Commit(AbstractActionBase):
                 if not self.opts['quiet']:
                     print(ident)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         return 0

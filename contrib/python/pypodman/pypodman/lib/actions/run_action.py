@@ -1,6 +1,5 @@
 """Remote client command for run a command in a new container."""
 import logging
-import sys
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -37,49 +36,36 @@ class Run(AbstractActionBase):
 
     def run(self):
         """Run container."""
-        print(self._args.detach)
-        print(self._args.tty)
-        print(self._args.interactive)
         self.opts['tty'] = True
         self.opts['detach'] = True
+        print(self.opts['command'])
+
         for ident in self._args.image:
             try:
                 try:
-                    logging.debug('Pull image "%s"', ident)
                     self.client.images.pull(ident)
-                    logging.debug('Get image "%s"', ident)
+                    logging.debug('Pulled image "%s"', ident)
                     img = self.client.images.get(ident)
-                    logging.debug('Creating container for image "%s"', ident)
+                    logging.debug('Got image "%s"', ident)
                     ctnr = img.container(**self.opts)
-                except podman.ImageNotFound as e:
-                    sys.stdout.flush()
-                    print(
-                        'Image "{}" not found.'.format(e.name),
-                        file=sys.stderr,
-                        flush=True)
-                    continue
-                else:
                     logging.debug('Created container "%s"', ctnr.id)
+                except podman.ImageNotFound as e:
+                    self.error('Image "{}" not found.'.format(e.name))
+                    continue
 
-                if self._args.detach:
-                    ctnr.start()
-                    print(ctnr.id)
-                else:
-                    logging.debug('Attaching to container "%s"', ctnr.id)
-                    ctnr.attach(eot=4)
-                    logging.debug('Starting container "%s"', ctnr.id)
-                    ctnr.start()
-                    print(ctnr.id)
+                if not self._args.detach:
+                    ctnr.attach(eot=self.opts['detach_keys'])
+                    logging.debug('Attached container "%s"', ctnr.id)
 
-                    if self._args.rm:
-                        logging.debug('Removing container "%s"', ctnr.id)
-                        ctnr.remove(force=True)
+                ctnr.start()
+                logging.debug('Started container "%s"', ctnr.id)
+                print(ctnr.id)
+
+                if self._args.rm:
+                    ctnr.remove(force=True)
+                    logging.debug('Removed container "%s"', ctnr.id)
             except (BrokenPipeError, KeyboardInterrupt):
                 print('\nContainer "{}" disconnected.'.format(ctnr.id))
             except podman.ErrorOccurred as e:
-                sys.stdout.flush()
-                print(
-                    'Run for container "{}" failed: {} {}'.format(
-                        ctnr.id, repr(e), e.reason.capitalize()),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Run for container "{}" failed: {} {}'.format(
+                    ctnr.id, repr(e), e.reason.capitalize()))

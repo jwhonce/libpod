@@ -1,9 +1,9 @@
 """Remote client command for reporting on Podman service."""
 import json
-import sys
+
+import yaml
 
 import podman
-import yaml
 from pypodman.lib import AbstractActionBase
 
 
@@ -18,8 +18,9 @@ class Info(AbstractActionBase):
         parser.add_argument(
             '--format',
             choices=('json', 'yaml'),
+            default='yaml',
             help="Alter the output for a format like 'json' or 'yaml'."
-            " (default: yaml)")
+            " (default: %(default)s)")
         parser.set_defaults(class_=cls, method='info')
 
     def info(self):
@@ -27,11 +28,7 @@ class Info(AbstractActionBase):
         try:
             info = self.client.system.info()
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         else:
             if self._args.format == 'json':
@@ -43,3 +40,4 @@ class Info(AbstractActionBase):
                         canonical=False,
                         default_flow_style=False),
                     flush=True)
+        return 0

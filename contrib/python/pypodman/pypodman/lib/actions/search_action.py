@@ -1,6 +1,5 @@
 """Remote client command for searching registries for an image."""
 import argparse
-import sys
 from collections import OrderedDict
 
 import podman
@@ -11,6 +10,9 @@ from pypodman.lib import (AbstractActionBase, PositiveIntAction, Report,
 class FilterAction(argparse.Action):
     """Parse filter argument components."""
 
+    # pragma pylint: disable=redefined-builtin
+    # pragma pylint: disable=too-few-public-methods
+    # pragma pylint: disable=too-many-arguments
     def __init__(self,
                  option_strings,
                  dest,
@@ -153,8 +155,4 @@ class Search(AbstractActionBase):
                 for row in rows:
                     report.row(**row)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())

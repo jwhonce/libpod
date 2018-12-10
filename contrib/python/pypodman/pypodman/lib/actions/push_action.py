@@ -1,6 +1,4 @@
 """Remote client command for pushing image elsewhere."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase
 
@@ -17,6 +15,7 @@ class Push(AbstractActionBase):
         )
         parser.add_flag(
             '--tlsverify',
+            default=True,
             help='Require HTTPS and verify certificates when'
             ' contacting registries.')
         parser.add_argument(
@@ -34,17 +33,11 @@ class Push(AbstractActionBase):
             try:
                 img = self.client.images.get(self._args.image[0])
             except podman.ImageNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Image {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Image {} not found.'.format(e.name))
             else:
                 img.push(self._args.tag[0], tlsverify=self._args.tlsverify)
                 print(self._args.image[0])
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
+            return 1
+        return 0

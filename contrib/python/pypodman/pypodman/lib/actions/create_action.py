@@ -1,6 +1,4 @@
 """Remote client command for creating container from image."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase
 
@@ -42,14 +40,8 @@ class Create(AbstractActionBase):
                     img.container(**self.opts)
                     print(ident)
                 except podman.ImageNotFound as e:
-                    sys.stdout.flush()
-                    print(
-                        'Image {} not found.'.format(e.name),
-                        file=sys.stderr,
-                        flush=True)
+                    self.error('Image "{}" not found.'.format(e.name))
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
+            return 1
+        return 0

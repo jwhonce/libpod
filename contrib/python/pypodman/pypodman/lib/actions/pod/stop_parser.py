@@ -1,5 +1,5 @@
 """Remote client command for stopping pod and container(s)."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -13,12 +13,11 @@ class StopPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Stop command to parent parser."""
         parser = parent.add_parser('stop', help='stop pod')
-        parser.add_flag(
-            '--all',
-            '-a',
-            help='Stop all pods.')
+        parser.add_flag('--all', '-a', help='Stop all pods.')
         parser.add_argument(
-            'pod', nargs='*', help='Pod to stop. Or, use --all')
+            'pod',
+            nargs=argparse.ZERO_OR_MORE,
+            help='Pod to stop. Or, use --all')
         parser.set_defaults(class_=cls, method='stop')
 
     def __init__(self, args):
@@ -36,9 +35,6 @@ class StopPod(AbstractActionBase):
             try:
                 pod.stop()
             except podman.ErrorOccurred as ex:
-                print(
-                    '{}'.format(ex.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(ex.reason).capitalize())
                 return 1
         return 0

@@ -1,5 +1,5 @@
 """Remote client command for pausing processes in containers."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -14,7 +14,7 @@ class Pause(AbstractActionBase):
         parser = parent.add_parser('pause', help='pause container processes')
         parser.add_argument(
             'containers',
-            nargs='+',
+            nargs=argparse.ONE_OR_MORE,
             help='containers to pause',
         )
         parser.set_defaults(class_=cls, method='pause')
@@ -27,17 +27,10 @@ class Pause(AbstractActionBase):
                     ctnr = self.client.containers.get(ident)
                     ctnr.pause()
                 except podman.ContainerNotFound as e:
-                    sys.stdout.flush()
-                    print(
-                        'Container "{}" not found'.format(e.name),
-                        file=sys.stderr,
-                        flush=True)
+                    self.error('Container "{}" not found'.format(e.name))
                 else:
                     print(ident)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
+        return 0

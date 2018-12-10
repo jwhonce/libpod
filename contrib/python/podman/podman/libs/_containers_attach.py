@@ -28,7 +28,6 @@ class Mixin:
             stdout = stdout.fileno()
 
         with self._client() as podman:
-            logging.debug('attach: GetAttachSockets(%s)', self._id)
             attach = podman.GetAttachSockets(self._id)
             logging.debug('attach: Ctnr "%s" sockets %s', self._id, attach)
 

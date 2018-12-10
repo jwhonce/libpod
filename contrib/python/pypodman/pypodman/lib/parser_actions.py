@@ -63,6 +63,60 @@ class ChangeAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
+class DetachKeyAction(argparse.Action):
+    """Validate input as a detach key."""
+
+    KEY_LABELS = ('ctrl-@', 'ctrl-a', 'ctrl-b', 'ctrl-c', 'ctrl-d', 'ctrl-e',
+                  'ctrl-f', 'ctrl-g', 'ctrl-h', 'ctrl-i', 'ctrl-j', 'ctrl-k',
+                  'ctrl-l', 'ctrl-m', 'ctrl-n', 'ctrl-o', 'ctrl-p', 'ctrl-q',
+                  'ctrl-r', 'ctrl-s', 'ctrl-t', 'ctrl-u', 'ctrl-v', 'ctrl-w',
+                  'ctrl-x', 'ctrl-y', 'ctrl-z', 'ctrl-[', 'ctrl-\\', 'ctrl-]',
+                  'ctrl-^', 'ctrl-_')
+
+    def __init__(self,
+                 option_strings,
+                 dest,
+                 nargs=None,
+                 const=None,
+                 default=4,
+                 type=str,
+                 choices=None,
+                 required=False,
+                 help='Override the key sequence for detaching a container.'
+                 ' (format: a single character [a-Z], the string DEL, or '
+                 r' ctrl-<value> where <value> is from [@a-z[\]^_])'
+                 ' (default: ctrl-d)',
+                 metavar='KEY'):
+        """Create DetachKeyAction object."""
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs=nargs,
+            const=const,
+            default=default,
+            type=type,
+            choices=choices,
+            required=required,
+            help=help,
+            metavar=metavar)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Validate input is a detach key."""
+        try:
+            key = self.KEY_LABELS.index(values)
+        except ValueError:
+            if values == 'DEL':
+                key = 127
+            elif len(values) == 1:
+                key = ord(values)
+            else:
+                parser.error(
+                    '"{}" must be a single character [a-Z],'
+                    r' the string ctrl-<value>, value from [@a-z[\]^_]'
+                    ' or the string DEL'.format(option_string))
+        setattr(namespace, self.dest, key)
+
+
 class SignalAction(argparse.Action):
     """Validate input as a signal."""
 
@@ -96,18 +150,15 @@ class SignalAction(argparse.Action):
             def _signal_number(signame):
                 cooked = 'SIG{}'.format(signame)
                 try:
-                    return signal.Signals[cooked].value
+                    sig = signal.Signals[cooked]  # pylint: disable=no-member
+                    return sig.value
                 except ValueError:
                     pass
         else:
 
             def _signal_number(signame):
                 cooked = 'SIG{}'.format(signame)
-                for n, v in sorted(signal.__dict__.items()):
-                    if n != cooked:
-                        continue
-                    if n.startswith("SIG") and not n.startswith("SIG_"):
-                        return v
+                return signal.__dict__.get(cooked, None)
 
         self._signal_number = _signal_number
 
@@ -115,7 +166,7 @@ class SignalAction(argparse.Action):
         """Validate input is a signal for platform."""
         if values.isdigit():
             signum = int(values)
-            if not (1 <= signum < signal.NSIG):
+            if not 1 <= signum < signal.NSIG:
                 raise ValueError('"{}" is not a valid signal. 1-{}'.format(
                     values, signal.NSIG))
         else:
@@ -190,7 +241,7 @@ class PositiveIntAction(argparse.Action):
                  choices=None,
                  required=False,
                  help='Must be a positive integer.',
-                 metavar=None):
+                 metavar='>0'):
         """Create PositiveIntAction object."""
         super().__init__(
             option_strings=option_strings,

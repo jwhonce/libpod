@@ -1,5 +1,6 @@
 """Base class for all actions of remote client."""
 import abc
+import sys
 from functools import lru_cache
 
 import podman
@@ -17,10 +18,7 @@ class AbstractActionBase(abc.ABC):
         Use set_defaults() to set attributes "class_" and "method". These will
         be invoked as class_(parsed_args).method()
         """
-        parent.add_flag(
-            '--all',
-            '-a',
-            help='list all items.')
+        parent.add_flag('--all', '-a', help='list all items.')
         parent.add_flag(
             '--truncate',
             '--trunc',
@@ -30,9 +28,7 @@ class AbstractActionBase(abc.ABC):
             '--heading',
             default=True,
             help='Include table headings in the output.')
-        parent.add_flag(
-            '--quiet',
-            help='List only the IDs.')
+        parent.add_flag('--quiet', help='Suppress or minimize output.')
 
     def __init__(self, args):
         """Construct class."""
@@ -68,6 +64,11 @@ class AbstractActionBase(abc.ABC):
             uri=self.local_uri,
             remote_uri=self.remote_uri,
             identity_file=self.identity_file)
+
+    def error(self, msg, file=sys.stderr):
+        """Print message to stderr."""
+        sys.stdout.flush()
+        print(msg, file=file, flush=True)
 
     def __repr__(self):
         """Compute the “official” string representation of object."""

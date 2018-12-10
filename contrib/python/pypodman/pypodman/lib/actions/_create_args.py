@@ -1,6 +1,6 @@
 """Implement common create container arguments together."""
 
-from pypodman.lib import SignalAction, UnitAction
+from pypodman.lib import DetachKeyAction, SignalAction, UnitAction
 
 
 class CreateArguments():
@@ -112,14 +112,8 @@ class CreateArguments():
             '--detach',
             '-d',
             help='Detached mode: run the container in the background and'
-            ' print the new container ID. (default: False)')
-        parser.add_argument(
-            '--detach-keys',
-            metavar='KEY(s)',
-            default=4,
-            help='Override the key sequence for detaching a container.'
-            ' (format: a single character [a-Z] or ctrl-<value> where'
-            ' <value> is one of: a-z, @, ^, [, , or _)')
+            ' print the new container ID. (default: %(default)s)')
+        parser.add_argument('--detach-keys', action=DetachKeyAction)
         parser.add_argument(
             '--device',
             action='append',
@@ -219,7 +213,8 @@ class CreateArguments():
             'choices': ('bind', 'tmpfs', 'ignore'),
             'metavar': 'MODE',
             'type': str.lower,
-            'help': 'Tells podman how to handle the builtin image volumes',
+            'default': 'bind',
+            'help': 'Tells podman how to handle the builtin image volumes.'
         }
 
         volume_group = parser.add_mutually_exclusive_group()
@@ -294,8 +289,7 @@ class CreateArguments():
                   " Set -1 to have unlimited pids for the container."))
         parser.add_argument('--pod', help='Run container in an existing pod')
         parser.add_flag(
-            '--privileged',
-            help='Give extended privileges to this container.')
+            '--privileged', help='Give extended privileges to this container.')
         parser.add_argument(
             '--publish',
             '-p',
@@ -314,8 +308,7 @@ class CreateArguments():
             '--read-only',
             help="Mount the container's root filesystem as read only.")
         parser.add_flag(
-            '--rm',
-            help='Automatically remove the container when it exits.')
+            '--rm', help='Automatically remove the container when it exits.')
         parser.add_argument(
             '--rootfs',
             help='If specified, the first argument refers to an'

@@ -1,5 +1,5 @@
 """Remote client command to import tarball as image filesystem."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase, ChangeAction
@@ -34,7 +34,7 @@ class Import(AbstractActionBase):
         parser.add_argument(
             'reference',
             metavar='TAG',
-            nargs='*',
+            nargs=argparse.REMAINDER,
             help='Optional tag for image. (default: None)',
         )
         parser.set_defaults(class_=cls, method='import_')
@@ -60,10 +60,6 @@ class Import(AbstractActionBase):
             )
             print(ident)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         return 0

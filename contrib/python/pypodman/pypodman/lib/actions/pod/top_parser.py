@@ -1,6 +1,4 @@
 """Remote client command for reporting on pod and container(s)."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase
 
@@ -22,14 +20,8 @@ class TopPod(AbstractActionBase):
                 pod = self.client.pods.get(ident)
                 print(pod.top())
         except podman.PodNotFound as ex:
-            print(
-                'Pod "{}" not found.'.format(ex.name),
-                file=sys.stderr,
-                flush=True)
+            self.error('Pod "{}" not found.'.format(ex.name))
         except podman.ErrorOccurred as ex:
-            print(
-                '{}'.format(ex.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(ex.reason).capitalize())
             return 1
         return 0

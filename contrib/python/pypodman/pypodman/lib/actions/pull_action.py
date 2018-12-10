@@ -1,5 +1,5 @@
 """Remote client command for pulling images."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -17,14 +17,10 @@ class Pull(AbstractActionBase):
         )
         parser.add_argument(
             'targets',
-            nargs='+',
+            nargs=argparse.ZERO_OR_MORE,
             help='image id(s) to retrieve.',
         )
         parser.set_defaults(class_=cls, method='pull')
-
-    def __init__(self, args):
-        """Construct Pull class."""
-        super().__init__(args)
 
     def pull(self):
         """Retrieve image."""
@@ -33,14 +29,6 @@ class Pull(AbstractActionBase):
                 self.client.images.pull(ident)
                 print(ident)
             except podman.ImageNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Image {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Image {} not found.'.format(e.name))
             except podman.ErrorOccurred as e:
-                sys.stdout.flush()
-                print(
-                    '{}'.format(e.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(e.reason).capitalize())

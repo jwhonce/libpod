@@ -1,5 +1,5 @@
 """Remote client command for deleting pod and containers."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -13,16 +13,15 @@ class RemovePod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Rm command to parent parser."""
         parser = parent.add_parser('rm', help='Delete pod and container(s)')
-        parser.add_flag(
-            '--all',
-            '-a',
-            help='Remove all pods.')
+        parser.add_flag('--all', '-a', help='Remove all pods.')
         parser.add_flag(
             '--force',
             '-f',
             help='Stop and remove container(s) then delete pod.')
         parser.add_argument(
-            'pod', nargs='*', help='Pod to remove. Or, use --all')
+            'pod',
+            nargs=argparse.ZERO_OR_MORE,
+            help='Pod to remove. Or, use --all')
         parser.set_defaults(class_=cls, method='remove')
 
     def __init__(self, args):
@@ -41,14 +40,8 @@ class RemovePod(AbstractActionBase):
                 pod.remove(self._args.force)
                 print(pod.id)
             except podman.PodNotFound as ex:
-                print(
-                    'Pod "{}" not found.'.format(ex.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Pod "{}" not found.'.format(ex.name))
             except podman.ErrorOccurred as ex:
-                print(
-                    '{}'.format(ex.reason).capitalize,
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(ex.reason).capitalize())
                 return 1
         return 0

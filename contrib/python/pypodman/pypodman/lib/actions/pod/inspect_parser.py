@@ -1,6 +1,6 @@
 """Remote client command for inspecting pods."""
+import argparse
 import json
-import sys
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -15,7 +15,8 @@ class InspectPod(AbstractActionBase):
         parser = parent.add_parser(
             'inspect',
             help='configuration and state information about a given pod')
-        parser.add_argument('pod', nargs='+', help='pod(s) to inspect')
+        parser.add_argument(
+            'pod', nargs=argparse.ONE_OR_MORE, help='pod(s) to inspect')
         parser.set_defaults(class_=cls, method='inspect')
 
     def inspect(self):
@@ -26,17 +27,10 @@ class InspectPod(AbstractActionBase):
                 try:
                     pod = self.client.pods.get(ident)
                 except podman.PodNotFound:
-                    print(
-                        'Pod "{}" not found.'.format(ident),
-                        file=sys.stdout,
-                        flush=True)
+                    self.error('Pod "{}" not found.'.format(ident))
                 output.update(pod.inspect()._asdict())
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         else:
             print(json.dumps(output, indent=2))

@@ -1,8 +1,6 @@
 """Remote client command for attaching to a container."""
-import sys
-
 import podman
-from pypodman.lib import AbstractActionBase
+from pypodman.lib import AbstractActionBase, DetachKeyAction
 
 
 class Attach(AbstractActionBase):
@@ -12,57 +10,37 @@ class Attach(AbstractActionBase):
     def subparser(cls, parent):
         """Add Attach command to parent parser."""
         parser = parent.add_parser('attach', help='attach to container')
+        parser.add_argument('--detach-keys', action=DetachKeyAction)
+        parser.add_flag('--stdin', default=True, help='Attach to STDIN')
+        parser.add_flag(
+            '--sig-proxy',
+            default=True,
+            help='proxy received signals to the process')
         parser.add_argument(
-            '--image',
-            help='image to instantiate and attach to',
-        )
-        parser.add_argument(
-            'command',
-            nargs='*',
-            help='image to instantiate and attach to',
-        )
+            'container', nargs=1, help='Identifier of running container')
         parser.set_defaults(class_=cls, method='attach')
-
-    def __init__(self, args):
-        """Construct Attach class."""
-        super().__init__(args)
-        if not args.image:
-            raise ValueError('You must supply one image id'
-                             ' or name to be attached.')
 
     def attach(self):
         """Attach to instantiated image."""
-        args = {
-            'detach': True,
-            'tty': True,
-        }
-        if self._args.command:
-            args['command'] = self._args.command
-
+        ident = self._args.container[0]
         try:
             try:
-                ident = self.client.images.pull(self._args.image)
-                img = self.client.images.get(ident)
-            except podman.ImageNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Image {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                ctnr = self.client.containers.get(ident)
+            except podman.ContainerNotFound as e:
+                self.error('Container {} not found.'.format(e.name))
                 return 1
+            else:
+                if not ctnr.running:
+                    self.error('You can only attach to running containers')
+                    return 1
 
-            ctnr = img.create(**args)
-            ctnr.attach(eot=4)
-
+            ctnr.attach(eot=self._args.detach_keys)
             try:
                 ctnr.start()
                 print()
             except (BrokenPipeError, KeyboardInterrupt):
                 print('\nContainer disconnected.')
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
+        return 0

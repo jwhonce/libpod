@@ -1,5 +1,5 @@
 """Remote client command for deleting containers."""
-import sys
+import argparse
 
 import podman
 from pypodman.lib import AbstractActionBase
@@ -13,11 +13,11 @@ class Rm(AbstractActionBase):
         """Add Rm command to parent parser."""
         parser = parent.add_parser('rm', help='delete container(s)')
         parser.add_flag(
-            '--force',
-            '-f',
-            help='force delete of running container(s).')
+            '--force', '-f', help='force delete of running container(s).')
         parser.add_argument(
-            'targets', nargs='+', help='container id(s) to delete')
+            'targets',
+            nargs=argparse.ONE_OR_MORE,
+            help='container id(s) to delete')
         parser.set_defaults(class_=cls, method='remove')
 
     def remove(self):
@@ -28,14 +28,8 @@ class Rm(AbstractActionBase):
                 ctnr.remove(self._args.force)
                 print(ident)
             except podman.ContainerNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Container {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Container {} not found.'.format(e.name))
             except podman.ErrorOccurred as e:
-                sys.stdout.flush()
-                print(
-                    '{}'.format(e.reason).capitalize(),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('{}'.format(e.reason).capitalize())
+                return 1
+        return 0

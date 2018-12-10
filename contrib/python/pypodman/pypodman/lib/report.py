@@ -12,8 +12,7 @@ class ReportFormatter(string.Formatter):
         try:
             if isinstance(key, int):
                 return args[key]
-            else:
-                return kwargs[key]
+            return kwargs[key]
         except KeyError:
             return '<none>'
 

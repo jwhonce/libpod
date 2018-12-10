@@ -1,5 +1,4 @@
 """Remote client command for retrieving container logs."""
-import argparse
 import logging
 import sys
 from collections import deque
@@ -27,10 +26,6 @@ class Logs(AbstractActionBase):
         )
         parser.set_defaults(class_=cls, method='logs')
 
-    def __init__(self, args):
-        """Construct Logs class."""
-        super().__init__(args)
-
     def logs(self):
         """Retrieve logs from containers."""
         try:
@@ -39,11 +34,7 @@ class Logs(AbstractActionBase):
                 logging.debug('Get container "%s" logs', ident)
                 ctnr = self.client.containers.get(ident)
             except podman.ContainerNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Container "{}" not found'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
+                self.error('Container "{}" not found'.format(e.name))
             else:
                 if self._args.tail:
                     logs = iter(deque(ctnr.logs(), maxlen=self._args.tail))
@@ -53,9 +44,6 @@ class Logs(AbstractActionBase):
                 for line in logs:
                     sys.stdout.write(line)
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
+        return 0

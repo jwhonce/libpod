@@ -1,6 +1,4 @@
 """Remote client command for export container filesystem to tarball."""
-import sys
-
 import podman
 from pypodman.lib import AbstractActionBase
 
@@ -36,19 +34,10 @@ class Export(AbstractActionBase):
             try:
                 ctnr = self.client.containers.get(self._args.container[0])
             except podman.ContainerNotFound as e:
-                sys.stdout.flush()
-                print(
-                    'Container {} not found.'.format(e.name),
-                    file=sys.stderr,
-                    flush=True)
-                return 1
+                self.error('Container "{}" not found.'.format(e.name))
             else:
                 ctnr.export(self._args.output[0])
         except podman.ErrorOccurred as e:
-            sys.stdout.flush()
-            print(
-                '{}'.format(e.reason).capitalize(),
-                file=sys.stderr,
-                flush=True)
+            self.error('{}'.format(e.reason).capitalize())
             return 1
         return 0
