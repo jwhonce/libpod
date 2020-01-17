@@ -36,20 +36,25 @@ func main() {
 	// Create a single runtime for http
 	runtime, err := libpodruntime.GetRuntimeDisableFDs(context.Background(), &config)
 	if err != nil {
-		fmt.Printf("error creating libpod runtime: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "error creating libpod runtime: %s", err.Error())
 		os.Exit(1)
 	}
 	defer runtime.DeferredShutdown(false)
 
-	server, err := api.NewServer(runtime)
+	const udsPath = "/tmp/run/podman/podman.sock"
+	listener, err := api.ListenUnix("unix", udsPath)
+	defer listener.Close()
+
+	// use api.UnlimitedServiceDuration if you never want server to exit
+	server, err := api.NewServerWithSettings(runtime, api.DefaultServiceDuration, &listener)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+	err = server.Serve()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
-	err = server.Serve()
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
 }
