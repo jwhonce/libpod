@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
-	"github.com/containers/libpod/pkg/domain/infra/abi"
 	"github.com/containers/libpod/pkg/domain/infra/tunnel"
 )
 
@@ -17,7 +16,7 @@ func NewContainerEngine(mode entities.EngineMode, opts entities.EngineOptions) (
 	switch mode {
 	case entities.ABIMode:
 		r, err := NewLibpodRuntime(opts.FlagSet, opts.Flags)
-		return &abi.ContainerEngine{ContainerEngine: r}, err
+		return r, err
 	case entities.TunnelMode:
 		ctx, err := bindings.NewConnection(context.Background(), opts.Uri.String(), opts.Identities...)
 		return &tunnel.ContainerEngine{ClientCxt: ctx}, err

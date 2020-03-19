@@ -19,7 +19,3 @@ func NewLibpodImageRuntime(flags pflag.FlagSet, opts entities.EngineFlags) (enti
 	}
 	return &abi.ImageEngine{Libpod: r}, nil
 }
-
-func (ir *runtime) ShutdownImageRuntime(force bool) error {
-	return ir.Libpod.Shutdown(force)
-}
