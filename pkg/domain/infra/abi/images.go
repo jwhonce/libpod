@@ -164,3 +164,11 @@ func ToDomainHistoryLayer(layer *libpodImage.History) entities.ImageHistoryLayer
 // 	copy(report.Report.Id, id)
 // 	return &report, nil
 // }
+
+func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string, options entities.ImageSaveOptions) error {
+	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
+	if err != nil {
+		return err
+	}
+	return newImage.Save(ctx, nameOrId, options.Format, options.Output, tags, options.Quiet, options.Compress)
+}

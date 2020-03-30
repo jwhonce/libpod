@@ -2,6 +2,9 @@ package tunnel
 
 import (
 	"context"
+	"os"
+
+	utils2 "github.com/containers/libpod/utils"
 
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -84,4 +87,52 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		Size: 0,
 	}
 	return &report, nil
+}
+
+func (ir *ImageEngine) Save(ctx context.Context, nameOrId string, tags []string, options entities.ImageSaveOptions) error {
+	//var f *os.File
+	//var err error
+	//if options.Format == "oci-dir" || options.Format == "docker-dir" {
+	//	f, err = ioutil.TempFile("", "podmansave")
+	//	if err == nil {
+	//		defer os.Remove(f.Name())
+	//	}
+	//} else {
+	//	_, cherr := os.Stat(options.Output)
+	//	if cherr != nil {
+	//		if os.IsNotExist(cherr) {
+	//			f, err = os.Create(options.Output)
+	//		} else {
+	//			return cherr
+	//		}
+	//	} else {
+	//		fmt.Println("*******")
+	//		f, err = os.Open(options.Output)
+	//	}
+	//
+	//}
+	//if err != nil {
+	//	_ = f.Close()
+	//	return err
+	//}
+	f, err := os.Create("t")
+	if err != nil {
+		return err
+	}
+	f.Close()
+	f, err = os.Open("t")
+	if err != nil {
+		return err
+	}
+	exErr := images.Export(ir.ClientCxt, nameOrId, f, &options.Format, &options.Compress)
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if exErr != nil {
+		return exErr
+	}
+	if options.Format != "oci-dir" && options.Format != "docker-dir" {
+		return nil
+	}
+	return utils2.UntarToFileSystem(options.Output, f, nil)
 }

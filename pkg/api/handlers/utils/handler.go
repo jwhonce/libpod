@@ -40,6 +40,14 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 			logrus.Errorf("unable to send string response: %q", err)
 		}
 	case *os.File:
+		fmt.Println("--->")
+		w.Header().Set("Content-Type", "application/octet; charset=us-ascii")
+		w.WriteHeader(code)
+
+		if _, err := io.Copy(w, v); err != nil {
+			logrus.Errorf("unable to copy to response: %q", err)
+		}
+	case io.Reader:
 		w.Header().Set("Content-Type", "application/octet; charset=us-ascii")
 		w.WriteHeader(code)
 

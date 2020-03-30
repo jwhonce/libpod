@@ -10,4 +10,5 @@ type ImageEngine interface {
 	History(ctx context.Context, nameOrId string, opts ImageHistoryOptions) (*ImageHistoryReport, error)
 	List(ctx context.Context, opts ImageListOptions) ([]*ImageSummary, error)
 	Prune(ctx context.Context, opts ImagePruneOptions) (*ImagePruneReport, error)
+	Save(ctx context.Context, nameOrId string, tags []string, options ImageSaveOptions) error
 }

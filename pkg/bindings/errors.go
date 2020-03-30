@@ -2,6 +2,7 @@ package bindings
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/containers/libpod/pkg/api/handlers/utils"
@@ -21,6 +22,9 @@ func handleError(data []byte) error {
 }
 
 func (a APIResponse) Process(unmarshalInto interface{}) error {
+	fmt.Println("///////////////")
+	fmt.Println(a.ContentLength)
+	fmt.Println("///////////////")
 	data, err := ioutil.ReadAll(a.Response.Body)
 	if err != nil {
 		return errors.Wrap(err, "unable to process API response")

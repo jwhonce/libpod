@@ -137,3 +137,10 @@ type ImagePruneReport struct {
 	Report Report
 	Size   int64
 }
+
+type ImageSaveOptions struct {
+	Compress bool
+	Format   string
+	Output   string
+	Quiet    bool
+}

@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	utils2 "github.com/containers/libpod/utils"
+
 	"github.com/containers/buildah"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -162,13 +164,16 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
+	var (
+		output string
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Compress bool   `schema:"compress"`
 		Format   string `schema:"format"`
 	}{
-		Format: "docker-archive",
+		Format: "oci-archive",
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -176,14 +181,27 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
-	tmpfile, err := ioutil.TempFile("", "api.tar")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
-		return
-	}
-	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+	switch query.Format {
+	case "oci-archive", "docker-archive":
+		tmpfile, err := ioutil.TempFile("", "api.tar")
+		if err != nil {
+			utils.Error(w, "unable to create tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+			return
+		}
+		output = tmpfile.Name()
+		if err := tmpfile.Close(); err != nil {
+			utils.Error(w, "unable to close tmpfile", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+			return
+		}
+	case "oci-dir", "docker-dir":
+		tmpdir, err := ioutil.TempDir("", "save")
+		if err != nil {
+			utils.Error(w, "unable to create tmpdir", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempdir"))
+			return
+		}
+		output = tmpdir
+	default:
+		utils.Error(w, "unknown format", http.StatusInternalServerError, errors.Errorf("unknown formati %q", query.Format))
 		return
 	}
 	name := utils.GetName(r)
@@ -193,17 +211,30 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := newImage.Save(r.Context(), name, query.Format, tmpfile.Name(), []string{}, false, query.Compress); err != nil {
+	if err := newImage.Save(r.Context(), name, query.Format, output, []string{}, false, query.Compress); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-	rdr, err := os.Open(tmpfile.Name())
+	// if dir format, we need to tar it
+	if query.Format == "oci-dir" || query.Format == "docker-dir" {
+		rdr, err := utils2.Tar(output)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		defer os.RemoveAll(output)
+		defer rdr.Close()
+		utils.WriteResponse(w, http.StatusOK, rdr)
+		return
+	}
+	rdr, err := os.Open(output)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
+	fmt.Println("sending " + output)
 	defer rdr.Close()
-	defer os.Remove(tmpfile.Name())
+	//defer os.Remove(output)
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 
