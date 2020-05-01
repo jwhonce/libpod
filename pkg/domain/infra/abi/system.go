@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"syscall"
+
+	"github.com/containers/libpod/pkg/domain/infra"
+
+	"github.com/docker/distribution/reference"
+	"github.com/spf13/pflag"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
@@ -174,4 +180,183 @@ func setUMask() { // nolint:deadcode,unused
 // checkInput can be used to verify any of the globalopt values
 func checkInput() error { // nolint:deadcode,unused
 	return nil
+}
+
+func (ic *ContainerEngine) SystemRenumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
+	ic.Shutdown(ctx)
+	customRt, err := infra.GetRuntimeRenumber(ctx, flags, config)
+	if err != nil {
+		return err
+	}
+	return customRt.Shutdown(false)
+}
+
+func (ic *ContainerEngine) SystemMigrate(ctx context.Context, options entities.SystemMigrateOptions, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
+	//ic.Shutdown(ctx)
+	//customRt, err := infra.GetRuntimeMigrate(ctx, flags, config, options.NewRuntime)
+	//if err != nil {
+	//	return err
+	//}
+	//return customRt.Shutdown(false)
+	return nil
+}
+
+func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
+	var (
+		dfImages          []*entities.SystemDfImageReport
+		dfContainers      []*entities.SystemDfContainerReport
+		dfVolumes         []*entities.SystemDfVolumeReport
+		runningContianers []string
+	)
+
+	// Get Images and iterate them
+	imgs, err := ic.Libpod.ImageRuntime().GetImages()
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range imgs {
+		var sharedSize uint64
+		cons, err := i.Containers()
+		if err != nil {
+			return nil, err
+		}
+		imageSize, err := i.Size(ctx)
+		if err != nil {
+			return nil, err
+		}
+		uniqueSize := *imageSize
+
+		parent, err := i.GetParent(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if parent != nil {
+			parentSize, err := parent.Size(ctx)
+			if err != nil {
+				return nil, err
+			}
+			uniqueSize = *parentSize - *imageSize
+			sharedSize = *imageSize - uniqueSize
+		}
+		var name, repository, tag string
+		for _, n := range i.Names() {
+			if len(n) > 0 {
+				name = n
+				break
+			}
+		}
+
+		named, err := reference.ParseNormalizedNamed(name)
+		if err != nil {
+			return nil, err
+		}
+		repository = named.Name()
+		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+			tag = tagged.Tag()
+		}
+
+		report := entities.SystemDfImageReport{
+			Repository: repository,
+			Tag:        tag,
+			ImageID:    i.ID(),
+			Created:    i.Created(),
+			Size:       int64(*imageSize),
+			SharedSize: int64(sharedSize),
+			UniqueSize: int64(uniqueSize),
+			Containers: len(cons),
+		}
+		dfImages = append(dfImages, &report)
+	}
+
+	//	GetContainers and iterate them
+	cons, err := ic.Libpod.GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range cons {
+		iid, _ := c.Image()
+		conSize, err := c.RootFsSize()
+		if err != nil {
+			return nil, err
+		}
+		state, err := c.State()
+		if err != nil {
+			return nil, err
+		}
+		rwsize, err := c.RWSize()
+		if err != nil {
+			return nil, err
+		}
+		report := entities.SystemDfContainerReport{
+			ContainerID:  c.ID(),
+			Image:        iid,
+			Command:      c.Command(),
+			LocalVolumes: len(c.UserVolumes()),
+			RWSize:       rwsize,
+			Size:         conSize,
+			Created:      c.CreatedTime(),
+			Status:       state.String(),
+			Names:        c.Name(),
+		}
+		dfContainers = append(dfContainers, &report)
+	}
+
+	//	Get volumes and iterate them
+	vols, err := ic.Libpod.GetAllVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	running, err := ic.Libpod.GetRunningContainers()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range running {
+		runningContianers = append(runningContianers, c.ID())
+	}
+
+	for _, v := range vols {
+		var consInUse int
+		volSize, err := sizeOfPath(v.MountPoint())
+		if err != nil {
+			return nil, err
+		}
+		inUse, err := v.VolumesInUse()
+		if err != nil {
+			return nil, err
+		}
+		for _, viu := range inUse {
+			if util.StringInSlice(viu, runningContianers) {
+				consInUse += 1
+			}
+		}
+		report := entities.SystemDfVolumeReport{
+			VolumeName: v.Name(),
+			Links:      consInUse,
+			Size:       volSize,
+		}
+		dfVolumes = append(dfVolumes, &report)
+	}
+	return &entities.SystemDfReport{
+		Images:     dfImages,
+		Containers: dfContainers,
+		Volumes:    dfVolumes,
+	}, nil
+}
+
+// sizeOfPath determines the file usage of a given path. it was called volumeSize in v1
+// and now is made to be generic and take a path instead of a libpod volume
+func sizeOfPath(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+func (ic *ContainerEngine) SystemReset(ctx context.Context, options entities.SystemResetOptions) error {
+	return ic.Libpod.Reset(ctx)
 }

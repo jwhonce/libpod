@@ -5,6 +5,8 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/spf13/pflag"
+
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -25,6 +27,15 @@ var (
 		RunE:    info,
 		Example: `podman info`,
 	}
+
+	systemInfoCommand = &cobra.Command{
+		Use:     "info",
+		Args:    validate.NoArgs,
+		Long:    infoDescription,
+		Short:   "Display podman system information",
+		RunE:    info,
+		Example: `podman system info`,
+	}
 )
 
 var (
@@ -32,14 +43,26 @@ var (
 	debug    bool
 )
 
+func infoFlags(flags *pflag.FlagSet) {
+	flags.BoolVarP(&debug, "debug", "D", false, "Display additional debug information")
+	flags.StringVarP(&inFormat, "format", "f", "", "Change the output format to JSON or a Go template")
+}
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: infoCommand,
 	})
 	flags := infoCommand.Flags()
-	flags.BoolVarP(&debug, "debug", "D", false, "Display additional debug information")
-	flags.StringVarP(&inFormat, "format", "f", "", "Change the output format to JSON or a Go template")
+	infoFlags(flags)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Parent:  systemCmd,
+		Command: systemInfoCommand,
+	})
+	systemInfoFlags := systemInfoCommand.Flags()
+	infoFlags(systemInfoFlags)
 }
 
 func info(cmd *cobra.Command, args []string) error {
