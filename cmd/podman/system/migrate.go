@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra"
 	"github.com/spf13/cobra"
 )
 
@@ -42,10 +43,21 @@ func init() {
 }
 
 func migrate(cmd *cobra.Command, args []string) {
-	err := registry.ContainerEngine().SystemMigrate(registry.Context(), migrateOptions, cmd.Flags(), registry.PodmanConfig())
-	if err == nil {
-		os.Exit(0)
+	// Shutdown all running engines, `renumber` will hijack repository
+	registry.ContainerEngine().Shutdown(registry.Context())
+	registry.ImageEngine().Shutdown(registry.Context())
+
+	engine, err := infra.NewSystemEngine(entities.MigrateMode, registry.PodmanConfig())
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(125)
 	}
-	fmt.Println(err)
-	os.Exit(125)
+	defer engine.Shutdown(registry.Context())
+
+	err = engine.Migrate(registry.Context(), cmd.Flags(), registry.PodmanConfig(), migrateOptions)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(125)
+	}
+	os.Exit(0)
 }

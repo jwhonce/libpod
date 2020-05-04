@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/registry"
 	"github.com/containers/libpod/cmd/podman/validate"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/infra"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -61,7 +62,19 @@ Are you sure you want to continue? [y/N] `)
 			os.Exit(0)
 		}
 	}
-	if err := registry.ContainerEngine().SystemReset(registry.Context(), systemResetOptions); err != nil {
+
+	// Shutdown all running engines, `reset` will hijack repository
+	registry.ContainerEngine().Shutdown(registry.Context())
+	registry.ImageEngine().Shutdown(registry.Context())
+
+	engine, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig())
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(125)
+	}
+	defer engine.Shutdown(registry.Context())
+
+	if err := engine.Reset(registry.Context(), systemResetOptions); err != nil {
 		fmt.Println(err)
 		os.Exit(125)
 	}

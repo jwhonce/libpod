@@ -3,8 +3,6 @@ package entities
 import (
 	"context"
 
-	"github.com/spf13/pflag"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/specgen"
@@ -63,9 +61,6 @@ type ContainerEngine interface {
 	SetupRootless(ctx context.Context, cmd *cobra.Command) error
 	Shutdown(ctx context.Context)
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
-	SystemMigrate(ctx context.Context, options SystemMigrateOptions, flags *pflag.FlagSet, config *PodmanConfig) error
-	SystemRenumber(ctx context.Context, flags *pflag.FlagSet, config *PodmanConfig) error
-	SystemReset(ctx context.Context, options SystemResetOptions) error
 	VarlinkService(ctx context.Context, opts ServiceOptions) error
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts VolumeInspectOptions) ([]*VolumeInspectReport, error)

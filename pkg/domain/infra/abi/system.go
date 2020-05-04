@@ -9,11 +9,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/containers/libpod/pkg/domain/infra"
-
-	"github.com/docker/distribution/reference"
-	"github.com/spf13/pflag"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -24,9 +19,11 @@ import (
 	iopodmanAPI "github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/libpod/version"
+	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/varlink/go/varlink"
 )
 
@@ -179,25 +176,6 @@ func setUMask() { // nolint:deadcode,unused
 
 // checkInput can be used to verify any of the globalopt values
 func checkInput() error { // nolint:deadcode,unused
-	return nil
-}
-
-func (ic *ContainerEngine) SystemRenumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
-	ic.Shutdown(ctx)
-	customRt, err := infra.GetRuntimeRenumber(ctx, flags, config)
-	if err != nil {
-		return err
-	}
-	return customRt.Shutdown(false)
-}
-
-func (ic *ContainerEngine) SystemMigrate(ctx context.Context, options entities.SystemMigrateOptions, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
-	//ic.Shutdown(ctx)
-	//customRt, err := infra.GetRuntimeMigrate(ctx, flags, config, options.NewRuntime)
-	//if err != nil {
-	//	return err
-	//}
-	//return customRt.Shutdown(false)
 	return nil
 }
 
@@ -357,6 +335,18 @@ func sizeOfPath(path string) (int64, error) {
 	return size, err
 }
 
-func (ic *ContainerEngine) SystemReset(ctx context.Context, options entities.SystemResetOptions) error {
-	return ic.Libpod.Reset(ctx)
+func (se *SystemEngine) Reset(ctx context.Context, options entities.SystemResetOptions) error {
+	return se.Libpod.Reset(ctx)
+}
+
+func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
+	return nil
+}
+
+func (s SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
+	return nil
+}
+
+func (s SystemEngine) Shutdown(ctx context.Context) {
+	panic("implement me")
 }
