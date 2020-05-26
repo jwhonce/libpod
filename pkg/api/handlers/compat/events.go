@@ -59,7 +59,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	// If client disappears we need to stop listening for events
 	go func(done <-chan struct{}) {
 		<-done
-		for _ = range eventChannel {
+		if _, ok := <-eventChannel; ok {
 			close(eventChannel)
 		}
 	}(r.Context().Done())

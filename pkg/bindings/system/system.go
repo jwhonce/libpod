@@ -53,18 +53,24 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 			logrus.Error(errors.Wrap(err, "unable to close event response body"))
 		}()
 	}
+
 	dec := json.NewDecoder(response.Body)
-	for {
-		e := entities.Event{}
-		if err := dec.Decode(&e); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return errors.Wrap(err, "unable to decode event response")
+	for err = (error)(nil); err == nil; {
+		var e = entities.Event{}
+		err = dec.Decode(&e)
+		if err == nil {
+			eventChan <- e
 		}
-		eventChan <- e
 	}
-	return nil
+	close(eventChan)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, io.EOF):
+		return nil
+	default:
+		return errors.Wrap(err, "unable to decode event response")
+	}
 }
 
 // Prune removes all unused system data.
